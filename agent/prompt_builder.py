@@ -1520,6 +1520,46 @@ def _omitted_headings(content: str, start: int, end: int, limit: int = 15) -> li
     return headings[:limit] + (["..."] if len(headings) > limit else [])
 
 
+SHARED_INSTRUCTIONS_FILENAME = "SHARED_INSTRUCTIONS.md"
+
+
+def load_shared_instructions_md(context_length: Optional[int] = None, home_override: Path | None = None) -> Optional[str]:
+    """``<hermes-root>/SHARED_INSTRUCTIONS.md`` — operator policy shared by EVERY profile.
+
+    Unlike SOUL.md (per-profile identity, loaded from the profile home) this file lives at the
+    Hermes ROOT, so the default profile, every named profile under ``<root>/profiles/`` and any
+    profile created later read the SAME bytes. Editing the one file propagates to all profiles
+    without copying the text into each SOUL.md or memory store. It is operator-authored policy
+    (e.g. a compute-resource policy), scanned like other context files; missing/empty -> None.
+    """
+    from agent.safe_worker_policy import safe_worker_enabled
+    from tools.hosted_tool_policy import host_feature_enabled
+
+    if safe_worker_enabled() or not host_feature_enabled("context_files"):
+        return None
+    try:
+        from hermes_constants import get_default_hermes_root
+
+        root = (get_default_hermes_root(home=home_override) if home_override is not None
+                else get_default_hermes_root())
+    except Exception as e:
+        logger.debug("Could not resolve Hermes root for shared instructions: %s", e)
+        return None
+    shared_path = root / SHARED_INSTRUCTIONS_FILENAME
+    if not shared_path.exists():
+        return None
+    try:
+        content = (_read_text_with_timeout(shared_path) or "").strip()
+        if not content:
+            return None
+        return _truncate_content(
+            _scan_context_content(content, SHARED_INSTRUCTIONS_FILENAME, user_authored=True),
+            SHARED_INSTRUCTIONS_FILENAME, context_length=context_length, read_path=str(shared_path))
+    except Exception as e:
+        logger.debug("Could not read shared instructions from %s: %s", shared_path, e)
+        return None
+
+
 def load_soul_md(context_length: Optional[int] = None, home_override: Path | None = None) -> Optional[str]:
     """SOUL.md from HERMES_HOME (identity slot #1), or None.
 

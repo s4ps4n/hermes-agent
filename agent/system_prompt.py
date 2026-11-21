@@ -575,11 +575,18 @@ def _memory_parts(agent: Any) -> list[str]:
 
 def _identity_parts(agent: Any, ctx_len: Optional[int]) -> tuple[list[str], bool]:
     """SOUL.md (primary identity; cron keeps the persona while skipping cwd
-    instructions, scoped to the agent's OWN home) or the default identity.
+    instructions, scoped to the agent's OWN home) or the default identity, plus the
+    root-level SHARED_INSTRUCTIONS.md operator policy shared by every profile.
     Returns ``(parts, soul_loaded)``."""
     wants_soul = agent.load_soul_identity or not agent.skip_context_files
-    _soul_content = _pb.load_soul_md(ctx_len, home_override=_agent_home(agent)) if wants_soul else None
-    return ([_soul_content], True) if _soul_content else ([DEFAULT_AGENT_IDENTITY], False)
+    home = _agent_home(agent)
+    _soul_content = _pb.load_soul_md(ctx_len, home_override=home) if wants_soul else None
+    parts = [_soul_content] if _soul_content else [DEFAULT_AGENT_IDENTITY]
+    if wants_soul:
+        shared = _pb.load_shared_instructions_md(ctx_len, home_override=home)
+        if shared:
+            parts.append("## Shared operator instructions (all profiles)\n\n" + shared)
+    return parts, bool(_soul_content)
 
 
 def _guidance_parts(agent: Any) -> list[str]:

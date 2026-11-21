@@ -113,6 +113,16 @@ Important details:
 - If the file is empty, nothing from `SOUL.md` is added to the prompt
 - If the file has content, the content is injected verbatim after scanning and truncation
 
+## SHARED_INSTRUCTIONS.md (all profiles)
+
+`SHARED_INSTRUCTIONS.md` at the **Hermes root** (`~/.hermes/SHARED_INSTRUCTIONS.md`, or the parent of
+`profiles/` for a custom root) is operator policy shared by **every profile**: the default profile,
+each named profile under `profiles/<name>/`, and any profile created later all read the same file.
+Unlike `SOUL.md` it is not per-profile identity and is never copied into a profile — edit the one
+root file and every profile's next session picks it up. Use it for installation-wide rules (for
+example a compute-resource policy), not for persona. It goes through the same scan/truncation as
+other operator-authored context files; a missing or empty file adds nothing.
+
 ## .cursorrules
 
 Hermes is compatible with Cursor IDE's `.cursorrules` file and `.cursor/rules/*.mdc` rule modules. If these files exist in your project root and no higher-priority context file (`.hermes.md`, `AGENTS.md`, or `CLAUDE.md`) is found, they're loaded as the project context.
